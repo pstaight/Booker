@@ -53,6 +53,6 @@
                 </DataTemplate>
             </ItemsControl.ItemTemplate>
         </ItemsControl>
-        <Button x:Name="bAddTicket" Content="Add Tickets" Grid.Column="1" FontSize="20" HorizontalAlignment="Left" Margin="254,47,0,0" VerticalAlignment="Top" />
+        <Button x:Name="bAddTicket" Content="Add Tickets" Grid.Column="1" FontSize="20" HorizontalAlignment="Left" Margin="254,47,0,0" VerticalAlignment="Top" Click="bAddTicket_Click" />
     </Grid>
 </Window>

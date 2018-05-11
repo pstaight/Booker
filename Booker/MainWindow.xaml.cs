@@ -26,6 +26,9 @@ namespace Booker
         private const string folder = @"C:\Users\Public\Booker\";
         private List<SchedItem> shows = new List<SchedItem>();
         private DispatcherTimer timer = new DispatcherTimer();
+        private int CurrentShowDisplayed = 0;
+        private AddTicket ticketWindow;
+
         public MainWindow()
         {
             InitializeComponent();
@@ -38,6 +41,10 @@ namespace Booker
         {
             DatePicker dt = sender as DatePicker;
             DateTime? date = dt.SelectedDate;
+            if (ticketWindow != null)
+            {
+                ticketWindow.Close();
+            }
             if (date == null)
             {
                 LoadDay(DateTime.Today);
@@ -163,6 +170,7 @@ namespace Booker
 
         private void LoadShow(int s)
         {
+            CurrentShowDisplayed = s;
             if (shows.ElementAtOrDefault(s) == null)
             {
                 lShowtime.Content = "No Show Time Selected";
@@ -175,7 +183,14 @@ namespace Booker
         private void LbSched_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
             var i = (sender as ListBox).SelectedIndex;
-            if (i >= 0) LoadShow(i);
+            if (i >= 0)
+            {
+                if (ticketWindow != null)
+                {
+                    ticketWindow.Close();
+                }
+                LoadShow(i);
+            }
         }
 
         //Q: How will this work if the schedule crosses Midnight?
@@ -198,6 +213,23 @@ namespace Booker
                 {
                     timer.Interval = shows[i + 1].DTShowTime - DateTime.Now;
                 }
+            }
+        }
+
+        private void bAddTicket_Click(object sender, RoutedEventArgs e)
+        {
+            if(ticketWindow != null)
+            {
+                ticketWindow.Close();
+            }
+            if (shows[CurrentShowDisplayed].Seats < 1)
+            {
+                MessageBox.Show(shows[CurrentShowDisplayed].ShowTime+" show time is fully booked", "Alert", MessageBoxButton.OK, MessageBoxImage.Information);
+            }
+            else
+            {
+                ticketWindow = new AddTicket(shows[CurrentShowDisplayed]);
+                ticketWindow.Show();
             }
         }
     }
