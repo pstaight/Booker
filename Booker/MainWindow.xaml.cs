@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.ComponentModel;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -13,28 +14,24 @@ using System.Windows.Media.Imaging;
 using System.Windows.Navigation;
 using System.Windows.Shapes;
 
+using System.Windows.Threading;
+
 namespace Booker
 {
     /// <summary>
     /// Interaction logic for MainWindow.xaml
-    /// </summary>schedItem
+    /// </summary>
     public partial class MainWindow : Window
     {
         private const string folder = @"C:\Users\Public\Booker\";
         private List<SchedItem> shows = new List<SchedItem>();
+        private DispatcherTimer timer = new DispatcherTimer();
         public MainWindow()
         {
             InitializeComponent();
             System.IO.Directory.CreateDirectory(folder);
+            timer.Tick += Timer_Tick;
             LoadDay(DateTime.Today);
-            LoadShow(0);
-            var tickets = new List<TicketItem>();
-            tickets.Add(new TicketItem() { NumTickets = 5, SaleType = 'P', Phone = "(619) 361-1024", BuyerName = "Patrick Staight" });
-            tickets.Add(new TicketItem() { NumTickets = 2, SaleType = 'F', Phone = "(619) 555-1024", BuyerName = "John Smith" });
-            tickets.Add(new TicketItem() { NumTickets = 2, SaleType = 'P', Phone = "", BuyerName = "Mary Sue" });
-            tickets.Add(new TicketItem() { NumTickets = 1, SaleType = 'D', Phone = "(619) 361-1024", BuyerName = "Starlord" });
-            tickets.Add(new TicketItem() { NumTickets = 2, SaleType = 'P', Phone = "", BuyerName = "Peater Parker" });
-            icTicket.ItemsSource = tickets;
         }
 
         private void DpShowDate_SelectedDateChanged(object sender, SelectionChangedEventArgs e)
@@ -48,14 +45,6 @@ namespace Booker
             else
             {
                 LoadDay(date.Value);
-                if (date.Value.Equals(DateTime.Today))
-                {
-                    Lwarn.Visibility = Visibility.Hidden;
-                }
-                else
-                {
-                    Lwarn.Visibility = Visibility.Visible;
-                }
             }
             LoadShow(0);
         }
@@ -67,72 +56,149 @@ namespace Booker
             if (System.IO.File.Exists(fileName))
             {
                 string[] lines = System.IO.File.ReadAllLines(fileName);
-                shows.Add(new SchedItem() { ShowTime = "09:00", Seats = 12, Color = "gray" });
-                shows.Add(new SchedItem() { ShowTime = "09:15", Seats = 12, Color = "gray" });
-                shows.Add(new SchedItem() { ShowTime = "09:30", Seats = 12, Color = "gray" });
-                shows.Add(new SchedItem() { ShowTime = "09:45", Seats = 12, Color = "gray" });
-                for (var i = 10; i < 17; ++i)
+                foreach (var l in lines)
                 {
-                    shows.Add(new SchedItem() { ShowTime = i + ":00", Seats = 12, Color = i < 11 ? "gray" : "" });
-                    shows.Add(new SchedItem() { ShowTime = i + ":15", Seats = 12, Color = i < 11 ? "gray" : "" });
-                    shows.Add(new SchedItem() { ShowTime = i + ":30", Seats = 12, Color = i < 11 ? "gray" : "" });
-                    shows.Add(new SchedItem() { ShowTime = i + ":45", Seats = 12, Color = i < 11 ? "gray" : "" });
+                    var d = new DateTime(int.Parse(l.Substring(0, 4)), int.Parse(l.Substring(5, 2)), int.Parse(l.Substring(8, 2)), int.Parse(l.Substring(11, 2)), int.Parse(l.Substring(13, 2)), 0);
+                    if (d.Date == value.Date)
+                    {
+                        var dat = l.Split(',');
+                        shows.Add(new SchedItem() {DTShowTime=d,TotalSeats=int.Parse(dat[1]),Tickets=new List<TicketItem>() });
+                    }
                 }
+                shows.Sort();
             }
             else
             {
                 if (System.IO.File.Exists(folder + "default.csv"))
                 {
-                    char[] d = { 'U', 'M', 'T', 'W', 'H', 'S' };
-                    char mark = d[(int)DateTime.Now.DayOfWeek];
+                    char[] d = { 'U', 'M', 'T', 'W', 'H','F', 'S' };
+                    char mark = d[(int)value.DayOfWeek];
                     string[] lines = System.IO.File.ReadAllLines(folder + "default.csv");
                     foreach (var l in lines) if (l[0] == mark)
+                    {
+                        var dat = l.Split(',');
+                        if (!int.TryParse(dat[1], out int start)) continue;
+                        if (!int.TryParse(dat[2], out int end)) continue;
+                        if (!int.TryParse(dat[3], out int seats)) continue;
+                        if (!int.TryParse(dat[4], out int length)) continue;
+                        var s = value.AddHours(start / 100).AddMinutes(start % 100);
+                        var e = value.AddHours(end / 100).AddMinutes(end % 100);
+                        while (s < e)
                         {
-                            var dat = l.Split(',');
-                            if (!int.TryParse(dat[1], out int start)) continue;
-                            if (!int.TryParse(dat[2], out int end)) continue;
-                            if (!int.TryParse(dat[3], out int seats)) continue;
-                            if (!int.TryParse(dat[4], out int length)) continue;
-                            var s = value.AddHours(start / 100).AddMinutes(start % 100);
-                            var e = value.AddHours(end / 100).AddMinutes(end % 100);
-                            while (s < e)
+                            var sh = shows.Find(x => x.DTShowTime.Equals(s));
+                            if (sh == null)
                             {
-                                string st = (s.Hour <= 12 ? s.Hour.ToString("00") : (s.Hour - 12).ToString("00")) + ":" + s.Minute.ToString("00") + (s.Hour < 12 ? " AM" : " PM");
-                                string c = s < DateTime.Now ? "gray" : "";
-                                shows.Add(new SchedItem() { ShowTime = st, Seats = seats, Color = c, Tickets = new List<TicketItem>() });
-                                s = s.AddMinutes(length);
+                                shows.Add(new SchedItem() { DTShowTime = s, TotalSeats = seats, Tickets = new List<TicketItem>() });
                             }
+                            else
+                            {
+                                if (seats < sh.TotalSeats)
+                                {
+                                    sh.TotalSeats = seats;
+                                }
+                            }
+                            s = s.AddMinutes(length);
                         }
+                    }
                     shows.Sort();
                 }
                 else
                 {
                     string[] lines = { "M,0900,1700,12,15", "T,0900,1700,12,15", "W,0900,1700,12,15", "H,0900,1700,12,15", "F,0900,1700,12,15", "S,0900,1700,12,15", "U,0900,1700,12,15" };
                     System.IO.File.WriteAllLines(folder + "default.csv", lines);
-                    for (int i = 9; i < 17; ++i)
+                    var s = DateTime.Today.AddHours(9);
+                    var e = DateTime.Today.AddHours(17);
+                    while (s < e)
                     {
-                        for (var j = 0; j < 60; j += 15)
+                        shows.Add(new SchedItem() { DTShowTime = s, TotalSeats=12, Tickets = new List<TicketItem>() });
+                        s = s.AddMinutes(15);
+                    }
+                }
+            }
+            fileName = folder + "ticket" + value.Year.ToString() + value.Month.ToString("00") + value.Day.ToString("00") + "-000.csv";
+            if (System.IO.File.Exists(fileName))
+            {
+                string[] lines = System.IO.File.ReadAllLines(fileName);
+                foreach (var l in lines)
+                {
+                    var d = new DateTime(int.Parse(l.Substring(0, 4)), int.Parse(l.Substring(5, 2)), int.Parse(l.Substring(8, 2)), int.Parse(l.Substring(11, 2)), int.Parse(l.Substring(13, 2)), 0);
+                    if(d.Date == value.Date)
+                    {
+                        var dat = l.Split(',');
+                        var sh = shows.Find(x => x.DTShowTime.Equals(d));
+                        if(sh == null)
                         {
-                            string st = (i <= 12 ? i.ToString("00") : (i - 12).ToString("00")) + ":" + j.ToString("00") + (i < 12 ? " AM" : " PM");
-                            string c = DateTime.Now.Hour == i ? DateTime.Now.Minute > j ? "gray" : "" : DateTime.Now.Hour > i ? "gray" : "";
-                            shows.Add(new SchedItem() { ShowTime = st, Seats = 12, Color = c, Tickets = new List<TicketItem>() });
+                            int i = d.Hour;
+                            string st = (i <= 12 ? i.ToString("00") : (i - 12).ToString("00")) + ":" + d.Minute.ToString("00") + (i < 12 ? " AM" : " PM");
+                            sh=new SchedItem() { DTShowTime=d, TotalSeats=0, Tickets = new List<TicketItem>() };
+                            shows.Add(sh);
                         }
+                        string b = dat[3];
+                        if (b.Length >1 && (b[b.Length - 1] == '"' || b[b.Length - 1] == '\xFFFD') && (b[0] == '"' || b[0]=='\xFFFD')) b = b.Substring(1, b.Length - 2);
+                        sh.Tickets.Add(new TicketItem() {NumTickets=int.Parse(dat[1]),SaleType=dat[2][0],BuyerName=b,Phone=dat[4] });
                     }
                 }
             }
             lbSched.ItemsSource = shows;
+            LoadShow(0);
+            if (value.Date.Equals(DateTime.Today))
+            {
+                Lwarn.Visibility = Visibility.Hidden;
+                int i=shows.FindIndex(x => x.DTShowTime > DateTime.Now);
+                if(shows.ElementAtOrDefault(i) != null)
+                {
+                    timer.Interval = shows[i].DTShowTime - DateTime.Now;
+                    timer.Start();
+                }
+            }
+            else
+            {
+                Lwarn.Visibility = Visibility.Visible;
+                if (timer.IsEnabled)
+                {
+                    timer.Stop();
+                }
+            }
         }
 
         private void LoadShow(int s)
         {
-            if (shows[s] == null) return;
+            if (shows.ElementAtOrDefault(s) == null)
+            {
+                lShowtime.Content = "No Show Time Selected";
+                return;
+            }
             lShowtime.Content = "Tickets For " + shows[s].ShowTime;
+            icTicket.ItemsSource = shows[s].Tickets;
         }
 
         private void LbSched_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
             var i = (sender as ListBox).SelectedIndex;
             if (i >= 0) LoadShow(i);
+        }
+
+        //Q: How will this work if the schedule crosses Midnight?
+        //A: Don't worry about that. It's outside the scope of this project.
+        void Timer_Tick(object sender, EventArgs e)
+        {
+            var i = shows.FindLastIndex(x => x.DTShowTime < DateTime.Now);
+            if (shows.ElementAtOrDefault(i) == null)
+            {
+                timer.Stop();
+            }
+            else
+            {
+                shows[i].UpColor();
+                if (shows.ElementAtOrDefault(i+1) == null)
+                {
+                    timer.Stop();
+                }
+                else
+                {
+                    timer.Interval = shows[i + 1].DTShowTime - DateTime.Now;
+                }
+            }
         }
     }
 
@@ -144,29 +210,23 @@ namespace Booker
         public string BuyerName { get; set; }
     }
 
-    public class SchedItem : IComparable<SchedItem>
+    public class SchedItem : INotifyPropertyChanged , IComparable<SchedItem>
     {
-        public string ShowTime { get; set; }
-        public int Seats { get; set; }
-        public string Color { get; set; }
+        public DateTime DTShowTime;
+        public string ShowTime {
+            get { int i=DTShowTime.Hour; return (i <= 12 ? i.ToString("00") : (i - 12).ToString("00")) + ":" + DTShowTime.Minute.ToString("00") + (i < 12 ? " AM" : " PM"); }
+            }
+        public int Seats { get { return TotalSeats - Tickets.Sum(x => x.NumTickets); } }
+        public int TotalSeats;
+        public string Color { get { return DTShowTime <= DateTime.Now ? "#aaaaaa" : ""; } set { UpColor(); } }
         public List<TicketItem> Tickets;
+
+        public event PropertyChangedEventHandler PropertyChanged;
+        public void UpSeats() => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs("Seats"));
+        public void UpColor() => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs("Color"));
         public int CompareTo(SchedItem b)
         {
-            if (b == null) return 1;
-            int H1 = int.Parse(ShowTime.Substring(0, 2));
-            if (H1 == 12) H1 += ShowTime.Substring(5, 3).Equals(" PM") ? 0 : -12;
-            else H1 += ShowTime.Substring(5, 3).Equals(" PM") ? 12 : 0;
-            int H2 = int.Parse(b.ShowTime.Substring(0, 2));
-            if (H2 == 12) H2 += b.ShowTime.Substring(5, 3).Equals(" PM") ? 0 : -12;
-            else H2 += b.ShowTime.Substring(5, 3).Equals(" PM") ? 12 : 0;
-            if (H1 == H2)
-            {
-                return int.Parse(ShowTime.Substring(3, 2)) - int.Parse(b.ShowTime.Substring(3, 2));
-            }
-            else
-            {
-                return H1 - H2;
-            }
+            return DTShowTime.CompareTo(b.DTShowTime);
         }
     }
 }
