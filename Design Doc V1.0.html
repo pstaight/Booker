@@ -1,0 +1,120 @@
+﻿<!DOCTYPE html>
+
+<html lang="en" xmlns="http://www.w3.org/1999/xhtml">
+<head>
+    <meta charset="utf-8" />
+    <title></title>
+</head>
+<body>
+    <h1>STEAM Maker Project #1</h1>
+    <h2>The Product:</h2>
+    This is a single-use turtle software-only is not designed or intended for any commercial distribution sale so it doesn't need to be ruggedized beyond the one environment it'll be on.<br />
+    I want the development environment to be C sharp on a Microsoft Visual Studio application.<br />
+    In our shop we have a number of I-5 cops I want this configured and running on that machine.<br />
+    There will be a ticket booth in the center of the Del Mar Fair the theater is located on the fifth floor of the grandstand. Are theater holds 12 seats and will be showing between 4 and 5 showings per hour during the run of the fair. It is important that the person selling tickets knows how many tickets have been sold for each showing so that we do not over sell any one time. We also have a requirement to report total sales to the fairgrounds. And I would like a system of notification for the person who purchased the ticket.<br />
+    There is no requirement for monetary transactions or complex calculations. As we discussed today version one of the software is simply something to get it done cross the finish line do not get complicated or try to add additional functions beyond the scope it will only complicate the problem and add to scope creep. As we move forward with the product there is every belief we will add functionality but it is not desired or intended in version 1.<br />
+    The software will be a self-sustaining vacation written as a desktop application. There is no need for web or mobile application development at this time.<br />
+    <h2>Administrative function:</h2>
+    In no order of importance of the following administrative functions must be available in the system.<br />
+    The ability to change how many seats are available in the theater. Our initial build-out is 12 but it is very conceivable that we will add additional seating if demand requires. The admin function must allow for the addition of seats. Although it will always be the same number of seats meaning it will not vary from showing to showing.<br />
+    The ability to add new shows to the schedule. To change daily hours of operation. And to change show frequency. We will start with four shows per hour every hour of the day the fair is open. It is possible that if we do well we will increase to five shows per hour or if we do not we will decrease the number of shows at any given day. We may also find that we open or close later than the hours of the fair. The administrator must be able to modify the available shows and hours through some interface.<br />
+    The ability to print reports for Selective times. We do not need to know the names of the people or the phone numbers they used when they signed up. But we do need to know the number of seats that were taken up in any one showing. Keep in mind that there are three numbers for any show that happens; the number of seats that were available, the number of tickets that were sold, and the number of gift (guest) tickets that were provided. Some people who are attending the show Will Be Our Guest when providing our reports to the fairgrounds we need to differentiate between paid and guest tickets.<br />
+    FTP Auto reporting. Every 2 hours the system will automatically connect via FTP and place a text file of all upcoming ticket sales for the next 72 hours on to the server. This is so that a second application or website can display that data to the operator running the show. It only needs to update every 2 hours on the last the transaction affects a ticket before that 2 hour will expire. The intent is so that anytime the operator up at the show can actively see all of the tickets that have been sold for the shows they are currently running. This means that if a person comes up and buys a ticket for the show that's going to start with in 45 minutes it should force the auto FTP report.<br />
+    All Administrator configured data needs to be modifiable in the administrative function. At a minimum of these will include fTP access information, sms information, sms notification text, and other functions that are relevant to the software operation.<br />
+    <h2>Automatic SMS notification:</h2>
+    When a person purchases tickets they should have the option of being notified via text message. If they select this option 30 minutes prior to their show an SMS message should be sent to their provided phone number. This is a onetime function. And the message should be pulled from the message section of the administrative page. Not every person will request this option but if they do it needs to work.<br />
+    <h2>Operator display and data entry screens:</h2>
+    The operator display should be a standard visual development window. A pull-down top of the screen allows you to select the day you are viewing and or any other day. Today would be the default and if any day other than today is displayed some obvious warning should be annotated on the screen so that the operator realizes they are not looking at the current day. In an easy graphic display all of the play time of the show should be visible. Each time should show the number of seats available in the theater and the number of seats available for that showing. It is not necessary to show names or any other data. Shows that have passed should be gray or red out but should be selectable so that the operator can address any issues that may have transpired.<br />
+    When a show is clicked on a pop-up or window should indicate a list of names of people that are signed up the type of ticket (free, discount or paid), the phone number if they chose text notification.<br />
+    The operator should be presented with a way to add new patrons. Keep in mind Bob Smith may order 5 seats. We do not need the name of each person in each seat simply saying Bob Smith on all five seats is perfectly acceptable. If Bob requests text notification that should only go into one seat and not all five that bob paid for.<br />
+    The operator should have the ability to delete any seats even for shows that have happened. Imagine Bob missed his performance and we want to move him to a new show. I don't want the record showing that Bob attended both shows or I have to pay royalties on both.<br />
+    <h2>User stories:</h2>
+    Bottom line is you're developing the software I want you to think about yourself being the one who's using it. You are one of three people.<br />
+    The operator who is up in the theater and is looking at that text message on the website to see who's in what show.<br />
+    You are the ticket taker on the main area. People are coming up to you and asking what seats are available for what shows. You're looking quickly to tell them what show is available you're selling them a ticket and you're entering their information. Things will go wrong, people will miss their show, you'll enter bad data, so you'll need the ability to look up old data, change tickets, modify information, and not have to be hassling with a complicated system.<br />
+    Finally you're the administrator who needs to keep it working, modify it for the environment, and respond to requests from myself in the fairgrounds over how many people attended on what days and what the future looks like.<br />
+    Simple, elegant, robust, functional. I am not looking for whistles bells and buzzers amazing GUI's, web code or Mobile apps. Don't use sequel where a text file would do. Don't get complicated when simple code does the job just fine. From my conversations with you I truly believe you know what you're doing.<br />
+    Impress me with rugged, dependable, simple, direct code.<br />
+    Victor Ciccarelli<br />
+    <a href="www.STEAMMaker.org">www.STEAMMaker.org</a> /<a href="www.4DSci.com">www.4DSci.com</a><br />
+    <br />
+    So we need 3 interfaces:<br />
+    <ul>
+        <li>Admin</li>
+        <li>Sales Operator</li>
+        <li>Theater Operator</li>
+    </ul>
+    Admin Page:<br />
+    <ul>
+        <li>
+            Seats in Theater
+        </li>
+        <li>
+            hours of operation
+        </li>
+        <li>
+            show frequency
+        </li>
+        <li>
+            fTP access information
+        </li>
+        <li>
+            sms information
+        </li>
+        <li>
+            sms notification text
+        </li>
+        <li>
+            other functions that are relevant to the software operation
+        </li>
+        <li>
+            print reports for Selective times
+        </li>
+
+        o	Showtime
+        o	seats that were available
+        o	the number of tickets that were sold
+        o	number of gift (guest) tickets
+        o	(Discount tickets?)
+        o	Number of SMS Buyers
+    </ul>
+    Theater Operator Page:<br />
+                          <ul>
+                              <li>Showtimes</li>
+                              <li>List of Names</li>
+                          </ul>
+        Sales Operator Schedule Page:<br />
+                                     <ul>
+                                         <li>
+                                             Showtimes
+                                         </li>
+                                         <li>
+                                             Seats available
+                                         </li>
+                                         <li>
+                                             Add button
+                                         </li>
+                                         <li>Delete button</li>
+                                     </ul>
+        Sales Operator Booking Page:<br />
+                                    <ul>
+                                        <li>
+                                            Showtime (auto-filled from previous page)
+                                        </li>
+                                        <li>
+                                            Name
+                                        </li>
+                                        <li>
+                                            Want SMS Notification
+                                        </li>
+                                        <li>
+                                            Phone Number (only if they want SMS)
+                                        </li>
+                                        <li>
+                                            Number of seats
+                                        </li>
+                                        <li>Free, Discount, Paid</li>
+                                    </ul>
+
+</body>
+</html>

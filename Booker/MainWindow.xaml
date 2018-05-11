@@ -1,0 +1,58 @@
+﻿<Window x:Class="Booker.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:local="clr-namespace:Booker"
+        mc:Ignorable="d"
+        Title="Ticket Booth" Height="800" Width="800">
+    <Grid Margin="10">
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="225"/>
+            <ColumnDefinition Width="771*"/>
+        </Grid.ColumnDefinitions>
+        <DatePicker Name="dpShowDate" HorizontalAlignment="Left" VerticalAlignment="Top" Height="42" FontSize="22" SelectedDateChanged="DpShowDate_SelectedDateChanged"/>
+        <Label x:Name="Lwarn" Content="THIS IS NOT THE CURRENT DAY" VerticalAlignment="Top" FontWeight="Bold" Background="Red" FontSize="24" Grid.Column="1" Visibility="Hidden"/>
+        <TextBlock Text="Time             Seats" FontSize="22" Margin="0,42,0,0" Height="38" VerticalAlignment="Top"/>
+        <Label x:Name="lShowtime" Content="Tickets For 9:00 AM" Margin="0,42,0,0" VerticalAlignment="Top" Height="38" FontWeight="Bold" FontSize="24" Grid.Column="1" HorizontalAlignment="Left" Width="254" />
+        <ListBox Name="lbSched" HorizontalAlignment="Left" VerticalAlignment="Top" HorizontalContentAlignment="Stretch" FontSize="24" FontWeight="Bold" Margin="0,77,0,0" SelectionChanged="LbSched_SelectionChanged" SelectionMode="Single">
+            <ListBox.ItemTemplate>
+                <DataTemplate>
+                    <Grid Margin="0,2" Background="{Binding Color}" >
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="20" />
+                            <ColumnDefinition Width="*" />
+                        </Grid.ColumnDefinitions>
+                        <TextBlock Text="{Binding ShowTime}" />
+                        <TextBlock Grid.Column="1" Text="" />
+                        <TextBlock Grid.Column="2" Text="{Binding Seats}" Margin="0,0,10,0"/>
+                    </Grid>
+                </DataTemplate>
+            </ListBox.ItemTemplate>
+        </ListBox>
+        <ItemsControl Name="icTicket" HorizontalContentAlignment="Stretch" Grid.Column="1" FontSize="20" FontWeight="Bold" Margin="0,80,0,0">
+            <ItemsControl.ItemTemplate>
+                <DataTemplate>
+                    <Grid Margin="0,0">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="50" />
+                            <ColumnDefinition Width="50" />
+                            <ColumnDefinition Width="20" />
+                            <ColumnDefinition Width="20" />
+                            <ColumnDefinition Width="170" />
+                            <ColumnDefinition Width="*" />
+                        </Grid.ColumnDefinitions>
+                        <Button Grid.Column="0" Content="Move" FontSize="12" />
+                        <Button Grid.Column="1" Content="Delete" FontSize="12" />
+                        <TextBlock Grid.Column="2" Text="{Binding NumTickets}" Margin="4,0,0,0" />
+                        <TextBlock Grid.Column="3" Text="{Binding SaleType}" />
+                        <TextBlock Grid.Column="4" Text="{Binding Phone}" />
+                        <TextBlock Grid.Column="5" Text="{Binding BuyerName}" />
+                    </Grid>
+                </DataTemplate>
+            </ItemsControl.ItemTemplate>
+        </ItemsControl>
+        <Button x:Name="bAddTicket" Content="Add Tickets" Grid.Column="1" FontSize="20" HorizontalAlignment="Left" Margin="254,47,0,0" VerticalAlignment="Top" />
+    </Grid>
+</Window>
