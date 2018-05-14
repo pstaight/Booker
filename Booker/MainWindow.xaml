@@ -34,22 +34,14 @@
         <ItemsControl Name="icTicket" HorizontalContentAlignment="Stretch" Grid.Column="1" FontSize="20" FontWeight="Bold" Margin="0,80,0,0">
             <ItemsControl.ItemTemplate>
                 <DataTemplate>
-                    <Grid Margin="0,0">
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="50" />
-                            <ColumnDefinition Width="50" />
-                            <ColumnDefinition Width="20" />
-                            <ColumnDefinition Width="20" />
-                            <ColumnDefinition Width="170" />
-                            <ColumnDefinition Width="*" />
-                        </Grid.ColumnDefinitions>
-                        <Button Grid.Column="0" Content="Move" FontSize="12" />
-                        <Button Grid.Column="1" Content="Delete" FontSize="12" />
-                        <TextBlock Grid.Column="2" Text="{Binding NumTickets}" Margin="4,0,0,0" />
-                        <TextBlock Grid.Column="3" Text="{Binding SaleType}" />
-                        <TextBlock Grid.Column="4" Text="{Binding Phone}" />
-                        <TextBlock Grid.Column="5" Text="{Binding BuyerName}" />
-                    </Grid>
+                    <StackPanel Orientation="Horizontal">
+                        <Button x:Name="BtnMove" Content="Move" FontSize="12" Click="BtnMove_Click" Margin="10,0,0,0"/>
+                        <Button x:Name="BtnDelete" Content="Delete" FontSize="12" Click="BtnDelete_Click" Margin="0,0,0,0"/>
+                        <TextBlock Text="{Binding NumTickets}" Margin="14,0,0,0" Width="25"/>
+                        <TextBlock Text="{Binding SaleType}" Margin="10,0,0,0" />
+                        <TextBlock Text="{Binding Phone}" Margin="10,0,0,0" Width="170"/>
+                        <TextBlock Text="{Binding BuyerName}" Margin="10,0,0,0" />
+                    </StackPanel>
                 </DataTemplate>
             </ItemsControl.ItemTemplate>
         </ItemsControl>

@@ -2,7 +2,9 @@
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
+using System.IO;
 using System.Linq;
+using System.Net;
 using System.Text;
 using System.Threading.Tasks;
 using System.Windows;
@@ -16,9 +18,150 @@ using System.Windows.Navigation;
 using System.Windows.Shapes;
 
 using System.Windows.Threading;
+using Renci.SshNet;
 
 namespace Booker
 {
+    public static class FilePusher
+    {
+        public const string folder = @"C:\Users\Public\Booker\";
+        public static void RemoveTicket(TicketItem item,DateTime itemTime)
+        {
+            var lines  = File.ReadAllLines(folder + "ticket" + itemTime.ToString("yyyyMMdd") + "-000.csv");
+            var ticks = new List<TicketItem>();
+            foreach(var l in lines)
+            {
+                var dat = l.Split(',');
+                var st = new DateTime(int.Parse(l.Substring(0, 4)), int.Parse(l.Substring(5, 2)), int.Parse(l.Substring(8, 2)), int.Parse(l.Substring(11, 2)), int.Parse(l.Substring(13, 2)), 0);
+                string b = dat[3];
+                if (b.Length > 1 && (b[b.Length - 1] == '"' || b[b.Length - 1] == '\xFFFD') && (b[0] == '"' || b[0] == '\xFFFD')) b = b.Substring(1, b.Length - 2);
+                var t = new TicketItem() { ShowTime = st, NumTickets = int.Parse(dat[1]), SaleType = dat[2][0], BuyerName = b, Phone = dat[4] };
+                if (!(item.ShowTime.Equals(t.ShowTime) && item.NumTickets == t.NumTickets && item.SaleType == t.SaleType && item.BuyerName.Equals(t.BuyerName) && item.Phone.Equals(t.Phone))){
+                    ticks.Add(t);
+                }
+            }
+            ticks.Sort();
+            var outlines = new List<string>();
+            foreach(var t in ticks)
+            {
+                outlines.Add(t.ShowTime.ToString("yyyy-MM-dd HHmm") + "," + t.NumTickets.ToString() + "," + t.SaleType + ",\"" + t.BuyerName + "\"," + t.Phone);
+            }
+            File.WriteAllLines(folder + "ticket" + itemTime.ToString("yyyyMMdd") + "-000.csv", outlines);
+        }
+
+        public static void AddTicket(TicketItem t, DateTime dTShowTime)
+        {
+            List<string> lines = new List<string>
+            {
+                dTShowTime.ToString("yyyy-MM-dd HHmm") + "," + t.NumTickets.ToString() + "," + t.SaleType + ",\"" + t.BuyerName + "\"," + t.Phone
+            };
+            File.AppendAllLines(folder + "ticket" + dTShowTime.ToString("yyyyMMdd") + "-000.csv", lines);
+        }
+        public static List<SchedItem> ReadShows(DateTime value)
+        {
+            var shows = new List<SchedItem>();
+            var fileName = folder + "sched" + value.Year.ToString() + value.Month.ToString("00") + value.Day.ToString("00") + "-000.csv";
+            if (File.Exists(fileName))
+            {
+                string[] lines = File.ReadAllLines(fileName);
+                foreach (var l in lines)
+                {
+                    var d = new DateTime(int.Parse(l.Substring(0, 4)), int.Parse(l.Substring(5, 2)), int.Parse(l.Substring(8, 2)), int.Parse(l.Substring(11, 2)), int.Parse(l.Substring(13, 2)), 0);
+                    if (d.Date == value.Date)
+                    {
+                        var dat = l.Split(',');
+                        shows.Add(new SchedItem() { DTShowTime = d, TotalSeats = int.Parse(dat[1]), Tickets = new ObservableCollection<TicketItem>() });
+                    }
+                }
+                shows.Sort();
+            }
+            else
+            {
+                if (File.Exists(folder + "default.csv"))
+                {
+                    char[] d = { 'U', 'M', 'T', 'W', 'H', 'F', 'S' };
+                    char mark = d[(int)value.DayOfWeek];
+                    string[] lines = File.ReadAllLines(folder + "default.csv");
+                    foreach (var l in lines) if (l[0] == mark)
+                        {
+                            var dat = l.Split(',');
+                            if (!int.TryParse(dat[1], out int start)) continue;
+                            if (!int.TryParse(dat[2], out int end)) continue;
+                            if (!int.TryParse(dat[3], out int seats)) continue;
+                            if (!int.TryParse(dat[4], out int length)) continue;
+                            var s = value.AddHours(start / 100).AddMinutes(start % 100);
+                            var e = value.AddHours(end / 100).AddMinutes(end % 100);
+                            while (s < e)
+                            {
+                                var sh = shows.Find(x => x.DTShowTime.Equals(s));
+                                if (sh == null)
+                                {
+                                    shows.Add(new SchedItem() { DTShowTime = s, TotalSeats = seats, Tickets = new ObservableCollection<TicketItem>() });
+                                }
+                                else
+                                {
+                                    if (seats < sh.TotalSeats)
+                                    {
+                                        sh.TotalSeats = seats;
+                                    }
+                                }
+                                s = s.AddMinutes(length);
+                            }
+                        }
+                    shows.Sort();
+                }
+                else
+                {
+                    string[] lines = { "M,0900,1700,12,15", "T,0900,1700,12,15", "W,0900,1700,12,15", "H,0900,1700,12,15", "F,0900,1700,12,15", "S,0900,1700,12,15", "U,0900,1700,12,15" };
+                    File.WriteAllLines(folder + "default.csv", lines);
+                    var s = DateTime.Today.AddHours(9);
+                    var e = DateTime.Today.AddHours(17);
+                    while (s < e)
+                    {
+                        shows.Add(new SchedItem() { DTShowTime = s, TotalSeats = 12, Tickets = new ObservableCollection<TicketItem>() });
+                        s = s.AddMinutes(15);
+                    }
+                }
+            }
+            fileName = folder + "ticket" + value.Year.ToString() + value.Month.ToString("00") + value.Day.ToString("00") + "-000.csv";
+            if (File.Exists(fileName))
+            {
+                string[] lines = File.ReadAllLines(fileName);
+                foreach (var l in lines)
+                {
+                    var d = new DateTime(int.Parse(l.Substring(0, 4)), int.Parse(l.Substring(5, 2)), int.Parse(l.Substring(8, 2)), int.Parse(l.Substring(11, 2)), int.Parse(l.Substring(13, 2)), 0);
+                    if (d.Date == value.Date)
+                    {
+                        var dat = l.Split(',');
+                        var sh = shows.Find(x => x.DTShowTime.Equals(d));
+                        if (sh == null)
+                        {
+                            sh = new SchedItem() { DTShowTime = d, TotalSeats = 0, Tickets = new ObservableCollection<TicketItem>() };
+                            shows.Add(sh);
+                        }
+                        string b = dat[3];
+                        if (b.Length > 1 && (b[b.Length - 1] == '"' || b[b.Length - 1] == '\xFFFD') && (b[0] == '"' || b[0] == '\xFFFD')) b = b.Substring(1, b.Length - 2);
+                        sh.Tickets.Add(new TicketItem() { NumTickets = int.Parse(dat[1]), SaleType = dat[2][0], BuyerName = b, Phone = dat[4] });
+                    }
+                }
+            }
+            return shows;
+
+        }
+        public static void Push()
+        {
+            string uploadfn = "ticket" + DateTime.Today.ToString("yyyyMMdd") + "-000.csv";
+            using (var client = new SftpClient("patricksapps.com", "client1", @"j8nVV.v{z""\3L#:K"))
+            {
+                client.Connect();
+                using (var uplfileStream = File.OpenRead(@"C:\Users\Public\Booker\" + uploadfn))
+                {
+                    client.UploadFile(uplfileStream, uploadfn, true);
+                }
+                client.Disconnect();
+            }
+        }
+    }
     /// <summary>
     /// Interaction logic for MainWindow.xaml
     /// </summary>
@@ -29,6 +172,7 @@ namespace Booker
         private DispatcherTimer timer = new DispatcherTimer();
         private int CurrentShowDisplayed = 0;
         private AddTicket ticketWindow;
+        private MoveTicket MoveWindow;
 
         public MainWindow()
         {
@@ -61,9 +205,9 @@ namespace Booker
         {
             shows = new List<SchedItem>();
             var fileName = folder + "sched" + value.Year.ToString() + value.Month.ToString("00") + value.Day.ToString("00") + "-000.csv";
-            if (System.IO.File.Exists(fileName))
+            if (File.Exists(fileName))
             {
-                string[] lines = System.IO.File.ReadAllLines(fileName);
+                string[] lines = File.ReadAllLines(fileName);
                 foreach (var l in lines)
                 {
                     var d = new DateTime(int.Parse(l.Substring(0, 4)), int.Parse(l.Substring(5, 2)), int.Parse(l.Substring(8, 2)), int.Parse(l.Substring(11, 2)), int.Parse(l.Substring(13, 2)), 0);
@@ -77,11 +221,11 @@ namespace Booker
             }
             else
             {
-                if (System.IO.File.Exists(folder + "default.csv"))
+                if (File.Exists(folder + "default.csv"))
                 {
                     char[] d = { 'U', 'M', 'T', 'W', 'H','F', 'S' };
                     char mark = d[(int)value.DayOfWeek];
-                    string[] lines = System.IO.File.ReadAllLines(folder + "default.csv");
+                    string[] lines = File.ReadAllLines(folder + "default.csv");
                     foreach (var l in lines) if (l[0] == mark)
                     {
                         var dat = l.Split(',');
@@ -113,7 +257,7 @@ namespace Booker
                 else
                 {
                     string[] lines = { "M,0900,1700,12,15", "T,0900,1700,12,15", "W,0900,1700,12,15", "H,0900,1700,12,15", "F,0900,1700,12,15", "S,0900,1700,12,15", "U,0900,1700,12,15" };
-                    System.IO.File.WriteAllLines(folder + "default.csv", lines);
+                    File.WriteAllLines(folder + "default.csv", lines);
                     var s = DateTime.Today.AddHours(9);
                     var e = DateTime.Today.AddHours(17);
                     while (s < e)
@@ -124,9 +268,9 @@ namespace Booker
                 }
             }
             fileName = folder + "ticket" + value.Year.ToString() + value.Month.ToString("00") + value.Day.ToString("00") + "-000.csv";
-            if (System.IO.File.Exists(fileName))
+            if (File.Exists(fileName))
             {
-                string[] lines = System.IO.File.ReadAllLines(fileName);
+                string[] lines = File.ReadAllLines(fileName);
                 foreach (var l in lines)
                 {
                     var d = new DateTime(int.Parse(l.Substring(0, 4)), int.Parse(l.Substring(5, 2)), int.Parse(l.Substring(8, 2)), int.Parse(l.Substring(11, 2)), int.Parse(l.Substring(13, 2)), 0);
@@ -141,7 +285,7 @@ namespace Booker
                         }
                         string b = dat[3];
                         if (b.Length >1 && (b[b.Length - 1] == '"' || b[b.Length - 1] == '\xFFFD') && (b[0] == '"' || b[0]=='\xFFFD')) b = b.Substring(1, b.Length - 2);
-                        sh.Tickets.Add(new TicketItem() {NumTickets=int.Parse(dat[1]),SaleType=dat[2][0],BuyerName=b,Phone=dat[4] });
+                        sh.Tickets.Add(new TicketItem() {ShowTime=sh.DTShowTime,  NumTickets=int.Parse(dat[1]),SaleType=dat[2][0],BuyerName=b,Phone=dat[4] });
                     }
                 }
             }
@@ -171,7 +315,7 @@ namespace Booker
         {
             DateTime value = shows[CurrentShowDisplayed].DTShowTime;
             string schedfilename = folder + "sched" + value.Year.ToString("0000") + value.Month.ToString("00") + value.Day.ToString("00") + "-000.csv";
-            if (!System.IO.File.Exists(schedfilename))
+            if (!File.Exists(schedfilename))
             {
                 string[] lines = new string[shows.Count];
                 int i = 0;
@@ -180,7 +324,7 @@ namespace Booker
                     lines[i]=s.DTShowTime.ToString("yyyy-MM-dd HHmm")+","+s.TotalSeats.ToString("0");
                     ++i;
                 }
-                System.IO.File.WriteAllLines(schedfilename, lines);
+                File.WriteAllLines(schedfilename, lines);
             }
         }
 
@@ -205,6 +349,10 @@ namespace Booker
                 if (ticketWindow != null)
                 {
                     ticketWindow.Close();
+                }
+                if(MoveWindow != null)
+                {
+                    MoveWindow.Close();
                 }
                 LoadShow(i);
             }
@@ -250,14 +398,55 @@ namespace Booker
                 ticketWindow.Show();
             }
         }
+
+        private void BtnMove_Click(object sender, RoutedEventArgs e)
+        {
+            var sp = (sender as Button).Parent as StackPanel;
+            var ti = new TicketItem() { NumTickets = int.Parse((sp.Children[2] as TextBlock).Text), SaleType = (sp.Children[3] as TextBlock).Text[0], Phone = (sp.Children[4] as TextBlock).Text, BuyerName = (sp.Children[5] as TextBlock).Text };
+            var item = shows[CurrentShowDisplayed].Tickets.First(x => x.NumTickets == ti.NumTickets && x.SaleType == ti.SaleType && x.Phone.Equals(ti.Phone) && x.BuyerName.Equals(ti.BuyerName));
+            if (MoveWindow != null)
+            {
+                MoveWindow.Close();
+            }
+            MoveWindow = new MoveTicket(item,this);
+            MoveWindow.Show();
+        }
+
+        public void MoveT(TicketItem Old, TicketItem NewItem)
+        {
+            shows[CurrentShowDisplayed].Tickets.Remove(Old);
+            shows[CurrentShowDisplayed].UpSeats();
+            FilePusher.RemoveTicket(Old, shows[CurrentShowDisplayed].DTShowTime);
+            FilePusher.AddTicket(NewItem, NewItem.ShowTime);
+            if(shows[CurrentShowDisplayed].DTShowTime.Date == NewItem.ShowTime.Date)
+            {
+                shows.Find(x => x.DTShowTime == NewItem.ShowTime).Tickets.Add(NewItem);
+            }
+        }
+
+        private void BtnDelete_Click(object sender, RoutedEventArgs e)
+        {
+            var sp = (sender as Button).Parent as StackPanel;
+            var ti = new TicketItem() { NumTickets = int.Parse((sp.Children[2] as TextBlock).Text), SaleType = (sp.Children[3] as TextBlock).Text[0], Phone = (sp.Children[4] as TextBlock).Text, BuyerName = (sp.Children[5] as TextBlock).Text };
+            var item = shows[CurrentShowDisplayed].Tickets.First(x => x.NumTickets == ti.NumTickets && x.SaleType == ti.SaleType && x.Phone.Equals(ti.Phone) && x.BuyerName.Equals(ti.BuyerName));
+            shows[CurrentShowDisplayed].Tickets.Remove(item);
+            shows[CurrentShowDisplayed].UpSeats();
+            FilePusher.RemoveTicket(item, shows[CurrentShowDisplayed].DTShowTime);
+                //read in the ticket file, remove this record, sort it, write it back out, Remove this record from Tickets
+        }
     }
 
-    public class TicketItem
+    public class TicketItem : IComparable<TicketItem>
     {
+        public DateTime ShowTime;
         public int NumTickets { get; set; }
         public char SaleType { get; set; }
         public string Phone { get; set; }
         public string BuyerName { get; set; }
+        public int CompareTo(TicketItem b)
+        {
+            return ShowTime.CompareTo(b.ShowTime);
+        }
     }
 
     public class SchedItem : INotifyPropertyChanged , IComparable<SchedItem>

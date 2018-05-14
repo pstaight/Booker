@@ -35,19 +35,18 @@ namespace Booker
 
         private void Button_Click(object sender, RoutedEventArgs e)
         {
-            var name = TBName.Text;
             var clean = new System.Text.RegularExpressions.Regex(@"[^\d]");
             var phone = clean.Replace(TBPhone.Text, "");
             if (phone.Length != 10 && phone.Length != 7) phone = "";
-            var numtickets = CMBTicketAvalible.SelectedIndex + 1;
-            char SaleType = RBFree.IsChecked??false ? 'F' : RBDiscount.IsChecked??false ? 'D' : 'P';
-            string ticketfilename = MainWindow.folder + "ticket" + SchedItemShow.DTShowTime.ToString("yyyyMMdd") + "-000.csv";
-            List<string> lines = new List<string>();
-            lines.Add(SchedItemShow.DTShowTime.ToString("yyyy-MM-dd HHmm") + "," + numtickets.ToString() + "," + SaleType + ",\"" + name + "\"," + phone);
-            System.IO.File.AppendAllLines(ticketfilename, lines);
-            SchedItemShow.Tickets.Add(new TicketItem() { SaleType = SaleType, NumTickets = numtickets, BuyerName = name, Phone = phone });
+            var t = new TicketItem() { SaleType = RBFree.IsChecked ?? false ? 'F' : RBDiscount.IsChecked ?? false ? 'D' : 'P', NumTickets = CMBTicketAvalible.SelectedIndex + 1, BuyerName = TBName.Text, Phone = phone };
+            SchedItemShow.Tickets.Add(t);
+            FilePusher.AddTicket(t,SchedItemShow.DTShowTime);
             SchedItemShow.UpSeats();
             Close();
+            if (SchedItemShow.DTShowTime>=DateTime.Now && SchedItemShow.DTShowTime < DateTime.Now.AddMinutes(45))
+            {
+                FilePusher.Push();
+            }
         }
     }
 
