@@ -21,10 +21,10 @@
             </ComboBox.ItemTemplate>
         </ComboBox>
         <Label FontWeight="Bold" FontSize="16">Ticket Type:</Label>
-        <RadioButton GroupName="TicketType" FontSize="16" IsChecked="True">Paid</RadioButton>
-        <RadioButton GroupName="TicketType" FontSize="16" >Discount</RadioButton>
-        <RadioButton GroupName="TicketType" FontSize="16" >Free</RadioButton>
-        <Button Content="Place Order" HorizontalAlignment="Center" FontSize="36" Margin="0,20,0,0" FontWeight="Bold"/>
+        <RadioButton x:Name="RBPaid" GroupName="TicketType" FontSize="16" IsChecked="True">Paid</RadioButton>
+        <RadioButton x:Name="RBDiscount" GroupName="TicketType" FontSize="16" >Discount</RadioButton>
+        <RadioButton x:Name="RBFree" GroupName="TicketType" FontSize="16" >Free</RadioButton>
+        <Button Content="Place Order" HorizontalAlignment="Center" FontSize="36" Margin="0,20,0,0" FontWeight="Bold" Click="Button_Click"/>
 
     </StackPanel>
 </Window>

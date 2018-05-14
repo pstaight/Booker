@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Linq;
 using System.Text;
@@ -23,7 +24,7 @@ namespace Booker
     /// </summary>
     public partial class MainWindow : Window
     {
-        private const string folder = @"C:\Users\Public\Booker\";
+        public const string folder = @"C:\Users\Public\Booker\";
         private List<SchedItem> shows = new List<SchedItem>();
         private DispatcherTimer timer = new DispatcherTimer();
         private int CurrentShowDisplayed = 0;
@@ -69,7 +70,7 @@ namespace Booker
                     if (d.Date == value.Date)
                     {
                         var dat = l.Split(',');
-                        shows.Add(new SchedItem() {DTShowTime=d,TotalSeats=int.Parse(dat[1]),Tickets=new List<TicketItem>() });
+                        shows.Add(new SchedItem() {DTShowTime=d,TotalSeats=int.Parse(dat[1]),Tickets=new ObservableCollection<TicketItem>() });
                     }
                 }
                 shows.Sort();
@@ -95,7 +96,7 @@ namespace Booker
                             var sh = shows.Find(x => x.DTShowTime.Equals(s));
                             if (sh == null)
                             {
-                                shows.Add(new SchedItem() { DTShowTime = s, TotalSeats = seats, Tickets = new List<TicketItem>() });
+                                shows.Add(new SchedItem() { DTShowTime = s, TotalSeats = seats, Tickets = new ObservableCollection<TicketItem>() });
                             }
                             else
                             {
@@ -117,7 +118,7 @@ namespace Booker
                     var e = DateTime.Today.AddHours(17);
                     while (s < e)
                     {
-                        shows.Add(new SchedItem() { DTShowTime = s, TotalSeats=12, Tickets = new List<TicketItem>() });
+                        shows.Add(new SchedItem() { DTShowTime = s, TotalSeats=12, Tickets = new ObservableCollection<TicketItem>() });
                         s = s.AddMinutes(15);
                     }
                 }
@@ -135,9 +136,7 @@ namespace Booker
                         var sh = shows.Find(x => x.DTShowTime.Equals(d));
                         if(sh == null)
                         {
-                            int i = d.Hour;
-                            string st = (i <= 12 ? i.ToString("00") : (i - 12).ToString("00")) + ":" + d.Minute.ToString("00") + (i < 12 ? " AM" : " PM");
-                            sh=new SchedItem() { DTShowTime=d, TotalSeats=0, Tickets = new List<TicketItem>() };
+                            sh=new SchedItem() { DTShowTime=d, TotalSeats=0, Tickets = new ObservableCollection<TicketItem>() };
                             shows.Add(sh);
                         }
                         string b = dat[3];
@@ -168,16 +167,34 @@ namespace Booker
             }
         }
 
-        private void LoadShow(int s)
+        private void MakeSched()
         {
-            CurrentShowDisplayed = s;
-            if (shows.ElementAtOrDefault(s) == null)
+            DateTime value = shows[CurrentShowDisplayed].DTShowTime;
+            string schedfilename = folder + "sched" + value.Year.ToString("0000") + value.Month.ToString("00") + value.Day.ToString("00") + "-000.csv";
+            if (!System.IO.File.Exists(schedfilename))
+            {
+                string[] lines = new string[shows.Count];
+                int i = 0;
+                foreach(var s in shows)
+                {
+                    lines[i]=s.DTShowTime.ToString("yyyy-MM-dd HHmm")+","+s.TotalSeats.ToString("0");
+                    ++i;
+                }
+                System.IO.File.WriteAllLines(schedfilename, lines);
+            }
+        }
+
+        private void LoadShow(int? s)
+        {
+            CurrentShowDisplayed = s?? CurrentShowDisplayed;
+            if (shows.ElementAtOrDefault(CurrentShowDisplayed) == null)
             {
                 lShowtime.Content = "No Show Time Selected";
                 return;
             }
-            lShowtime.Content = "Tickets For " + shows[s].ShowTime;
-            icTicket.ItemsSource = shows[s].Tickets;
+            lShowtime.Content = "Tickets For " + shows[CurrentShowDisplayed].ShowTime;
+            icTicket.ItemsSource = shows[CurrentShowDisplayed].Tickets;
+            shows[CurrentShowDisplayed].UpSeats();
         }
 
         private void LbSched_SelectionChanged(object sender, SelectionChangedEventArgs e)
@@ -229,6 +246,7 @@ namespace Booker
             else
             {
                 ticketWindow = new AddTicket(shows[CurrentShowDisplayed]);
+                MakeSched();
                 ticketWindow.Show();
             }
         }
@@ -251,7 +269,7 @@ namespace Booker
         public int Seats { get { return TotalSeats - Tickets.Sum(x => x.NumTickets); } }
         public int TotalSeats;
         public string Color { get { return DTShowTime <= DateTime.Now ? "#aaaaaa" : ""; } set { UpColor(); } }
-        public List<TicketItem> Tickets;
+        public ObservableCollection<TicketItem> Tickets;
 
         public event PropertyChangedEventHandler PropertyChanged;
         public void UpSeats() => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs("Seats"));
