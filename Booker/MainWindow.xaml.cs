@@ -36,7 +36,6 @@ namespace Booker
             InitializeComponent();
             Directory.CreateDirectory(FilePusher.folder);
             timer.Tick += Timer_Tick;
-            FilePusher.SFTPtimer.Start();
             FilePusher.TotMessage = LTotalTicks;
             LoadDay(DateTime.Today);
         }

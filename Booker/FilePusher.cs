@@ -5,6 +5,9 @@ using System.IO;
 using System.Linq;
 using System.Windows.Threading;
 using Renci.SshNet;
+using Twilio;
+using Twilio.Rest.Api.V2010.Account;
+using Twilio.Types;
 
 namespace Booker
 {
@@ -12,7 +15,10 @@ namespace Booker
     {
         public const string folder = @"C:\Users\Public\Booker\";
         public static List<SchedItem> shows;
-        public static DispatcherTimer SFTPtimer = new DispatcherTimer(new TimeSpan(2,0,0), DispatcherPriority.Background,Push, Dispatcher.CurrentDispatcher);
+        private static DateTime LastNotifyed = DateTime.Today;
+        private static DispatcherTimer SFTPtimer = new DispatcherTimer(TimeSpan.FromSeconds(3), DispatcherPriority.Background,Push, Dispatcher.CurrentDispatcher);
+        private static DispatcherTimer SMSTimer = new DispatcherTimer(TimeSpan.FromSeconds(2), DispatcherPriority.Background, SendSMS, Dispatcher.CurrentDispatcher);
+
         public static bool HasMoreShows => shows.Any(x => x.DTShowTime >= DateTime.Now);
         public static DateTime NextShowTime => shows.First(x => x.DTShowTime >= DateTime.Now).DTShowTime;
         public static int TotalShows => shows.Sum(x => x.Tickets.Sum(y => y.NumTickets));
@@ -21,6 +27,18 @@ namespace Booker
         {
 
             shows = new List<SchedItem>();
+            if (value.Date == DateTime.Today)
+            {
+                if (!SMSTimer.IsEnabled) SMSTimer.Start();
+            }
+            else
+            {
+                SMSTimer.Stop();
+            }
+            if (!SFTPtimer.IsEnabled)
+            {
+                SFTPtimer.Start();
+            }
             string fileName = folder + "sched" + value.ToString("yyyyMMdd") + "-000.csv";
             if (File.Exists(fileName))
             {
@@ -293,8 +311,22 @@ namespace Booker
         //Should we always push today's file or should we push the currently open day?
         public static void Push(object sender, EventArgs e)
         {
+            string host = "patricksapps.com";
+            string username = "client1";
+            string password = @"j8nVV.v{z""\3L#:K";
+            int i;
+            var lines = File.ReadAllLines(folder + "admin.txt");
+            foreach (var l in lines)
+            {
+                switch(l.Substring(0, i=l.IndexOf(':')))
+                {
+                    case "SFTP SERVER":host = l.Substring(i + 1); break;
+                    case "SFTP USER":username = l.Substring(i + 1);break;
+                    case "SFTP PASS":password = l.Substring(i + 1);break;
+                }
+            }
             string uploadfn = "ticket" + DateTime.Today.ToString("yyyyMMdd") + "-000.csv";
-            using (var client = new SftpClient("patricksapps.com", "client1", @"j8nVV.v{z""\3L#:K"))
+            using (var client = new SftpClient(host, username, password))
             {
                 client.Connect();
                 using (var uplfileStream = File.OpenRead(@"C:\Users\Public\Booker\" + uploadfn))
@@ -303,6 +335,67 @@ namespace Booker
                 }
                 client.Disconnect();
             }
+            SFTPtimer.Interval = new TimeSpan(2, 0, 0);
+        }
+
+        //Loop through Unnotifyed shows until you find one that is more than 30 minutes out
+        // If it is less than 20 minutes away mark as notifyed but don't actualy send SMS
+        // Otherwize send SMS
+
+        //So if it is 3:00 (+ one instant) and shows happen every 3 Minutes and LastNotifyed is 1:00
+        //then I want to:
+        //  notify 3:21, 3:24, 3:27 and 3:30
+        //  Set LastNotifyed to 3:30
+        //  Set interval to 3 minutes
+        public static void SendSMS(object sender, EventArgs e)
+        {
+            int i;
+            string msg = "Hello <BUYERNAME>, Your VR show starts in <MIN2SHOW> minutes. <SHOWTIME>";
+            string sid = "ACf0b1d2bc18bceb6f140589d44babd183";
+            string token = "9890f94781ec78129b6c14c1ba85299b";
+            string from = "+16196484049";
+            var lines = File.ReadAllLines(folder + "admin.txt");
+            foreach (var l in lines)
+            {
+                switch (l.Substring(0, i = l.IndexOf(':')))
+                {
+                    case "SMS TEXT": msg = l.Substring(i + 1); break;
+                    case "SMS SID": sid = l.Substring(i + 1); break;
+                    case "SMS TOKEN": token = l.Substring(i + 1); break;
+                    case "SMS FROM": from = l.Substring(i + 1); break;
+                }
+            }
+            TwilioClient.Init(sid, token);
+            while (LastNotifyed <= DateTime.Now.AddMinutes(30))
+            {
+                //If there are duplacates, only one of them will be notifyed.
+                //There shouldn't be duplacates
+                var s = shows.FirstOrDefault(x => x.DTShowTime > LastNotifyed);
+                if (s == null)
+                {
+                    LastNotifyed = DateTime.Today.AddDays(1);
+                }
+                else
+                {
+                    if(s.DTShowTime > DateTime.Now.AddMinutes(20))
+                    {
+                        foreach(var ticket in s.Tickets)
+                        {
+                            if(ticket.Phone != "")
+                            {
+                                string tmsg = msg.Replace("<BUYERNAME>", ticket.BuyerName).Replace("<MIN2SHOW>", (s.DTShowTime - DateTime.Now).TotalMinutes.ToString("F0")).Replace("<SHOWTIME>", s.DTShowTime.ToString("t"));
+                                var message = MessageResource.Create(
+                to: new PhoneNumber("+1" + (ticket.Phone.Length == 7 ? "619" : "") + ticket.Phone),
+                from: new PhoneNumber(from),
+                body: tmsg
+                );
+                            }
+                        }
+                    }
+                    LastNotifyed = s.DTShowTime;
+                }
+            }
+            SMSTimer.Interval = LastNotifyed - DateTime.Now.AddMinutes(30);
         }
     }
 }

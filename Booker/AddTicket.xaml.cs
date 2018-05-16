@@ -45,11 +45,6 @@ namespace Booker
             if (SchedItemShow>=DateTime.Now && SchedItemShow < DateTime.Now.AddMinutes(45))
             {
                 FilePusher.Push(null,null);
-                if (FilePusher.SFTPtimer.IsEnabled)
-                {
-                    FilePusher.SFTPtimer.Stop();
-                }
-                FilePusher.SFTPtimer.Start();
             }
         }
     }
