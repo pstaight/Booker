@@ -19,16 +19,17 @@ namespace Booker
     /// </summary>
     public partial class MoveTicket : Window
     {
-        private TicketItem item;
-        private MainWindow mw;
         private List<ShowOptionItem> SOI;
-        private DateTime dt;
+        private TicketItem item;
+        private int ShowIndex;
+        private int? TicketIndex;
         private bool NoShow = false;
-        public MoveTicket(TicketItem _item, MainWindow _mw)
+        public MoveTicket(int _ShowIndex, int? _TicketIndex)
         {
+            ShowIndex = _ShowIndex;
+            TicketIndex = _TicketIndex;
             InitializeComponent();
-            item = _item;
-            mw = _mw;
+            item = FilePusher.shows[ShowIndex].Tickets[TicketIndex ?? 0];
             TBLNumTickets.Text = item.NumTickets + " Ticket" + (item.NumTickets == 1 ? "" : "s");
             TBLBuyerName.Text = item.BuyerName;
             SetShows(item.ShowTime);
@@ -36,8 +37,7 @@ namespace Booker
 
         private void DpMoveDate_SelectedDateChanged(object sender, SelectionChangedEventArgs e)
         {
-            DatePicker dt = sender as DatePicker;
-            DateTime? date = dt.SelectedDate;
+            DateTime? date = (sender as DatePicker).SelectedDate;
             if (date.Equals(item.ShowTime.Date))
             {
                 TBLwarn2.Visibility = Visibility.Hidden;
@@ -50,20 +50,16 @@ namespace Booker
         }
         private void SetShows(DateTime _dt)
         {
-            dt = _dt;
-            var shows = FilePusher.ReadShows(dt);
-            SOI = new List<ShowOptionItem>();
-            foreach (var s in shows)
-            {
-                if (s.DTShowTime > DateTime.Now && s.Seats >= item.NumTickets) SOI.Add(new ShowOptionItem() { ShowOption = s.ShowTime });
-            }
+            //Check if FilePusher.shows is the same day as _dt
+            SOI = FilePusher.MakeShowOptions(_dt, FilePusher.shows[ShowIndex].Tickets[TicketIndex ?? 0].NumTickets);
+                //FilePusher.shows.FindAll(x => (FilePusher.AllowRetro || x.DTShowTime > DateTime.Now) && x.Seats >= item.NumTickets);
             NoShow = false;
             if (SOI.Count == 0)
             {
                 SOI.Add(new ShowOptionItem() { ShowOption = "No Available Shows" });
                 NoShow = true;
             }
-            dpMoveDate.DisplayDateStart = DateTime.Today;
+            //dpMoveDate.DisplayDateStart = DateTime.Today;
             CMBShowsAvalible.ItemsSource = SOI;
             CMBShowsAvalible.SelectedIndex = 0;
 
@@ -73,26 +69,19 @@ namespace Booker
         {
             if (NoShow)
             {
-                MessageBox.Show("No suitable Show Times for " + dt.ToString("yyyy-MM-dd"), "Alert", MessageBoxButton.OK, MessageBoxImage.Information);
+                MessageBox.Show("No suitable Show Times", "Alert", MessageBoxButton.OK, MessageBoxImage.Information);
                 return;
             }
-            string t = SOI[CMBShowsAvalible.SelectedIndex].ShowOption;
-            DateTime d;
-            if(dpMoveDate.SelectedDate == null)
-            {
-                d=item.ShowTime.Date.AddHours(int.Parse(t.Substring(0, 2)) + (t.Substring(5, 3) == " PM" ? 12 : 0)).AddMinutes(int.Parse(t.Substring(3, 2)));
-            }
-            else
-            {
-                d = dpMoveDate.SelectedDate.Value.AddHours(int.Parse(t.Substring(0, 2)) + (t.Substring(5, 3) == " PM" ? 12 : 0)).AddMinutes(int.Parse(t.Substring(3, 2)));
-            }
-            var newItem = new TicketItem() { ShowTime = d,NumTickets=item.NumTickets,SaleType=item.SaleType,BuyerName=item.BuyerName,Phone=item.Phone};
-            mw.MoveT(item, newItem);
+            item.ShowTime = SOI[CMBShowsAvalible.SelectedIndex].DTShowTime;
+            FilePusher.RemoveTicket(ShowIndex, TicketIndex);
+            FilePusher.AddTicket(item);
+            FilePusher.TotMessage.Content = "Today's Total: " + FilePusher.TotalShows.ToString();
             this.Close();
         }
     }
     public class ShowOptionItem
     {
         public string ShowOption { get; set; }
+        public DateTime DTShowTime;
     }
 }

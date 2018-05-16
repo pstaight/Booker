@@ -20,13 +20,13 @@ namespace Booker
     public partial class AddTicket : Window
     {
         private List<TicketMenuItem> MenuList = new List<TicketMenuItem>();
-        private SchedItem SchedItemShow;
-        public AddTicket(SchedItem item)
+        private DateTime SchedItemShow;
+        public AddTicket(int ShowIndex)
         {
             InitializeComponent();
-            SchedItemShow = item;
-            LAddTime.Content = item.ShowTime+" TICKET";
-            int seats = item.Seats;
+            SchedItemShow = FilePusher.shows[ShowIndex].DTShowTime;
+            LAddTime.Content = FilePusher.shows[ShowIndex].ShowTime+ " TICKET";
+            int seats = FilePusher.shows[ShowIndex].Seats;
             LNumTicketsAvalible.Content = "Number of Tickets (Max "+seats.ToString()+"):";
             for (int i = 0; i < seats; ++i) MenuList.Add(new TicketMenuItem() { MenuOption = (i+1).ToString()+" Ticket"+(i==0?"":"s")});
             CMBTicketAvalible.ItemsSource = MenuList;
@@ -38,14 +38,18 @@ namespace Booker
             var clean = new System.Text.RegularExpressions.Regex(@"[^\d]");
             var phone = clean.Replace(TBPhone.Text, "");
             if (phone.Length != 10 && phone.Length != 7) phone = "";
-            var t = new TicketItem() { SaleType = RBFree.IsChecked ?? false ? 'F' : RBDiscount.IsChecked ?? false ? 'D' : 'P', NumTickets = CMBTicketAvalible.SelectedIndex + 1, BuyerName = TBName.Text, Phone = phone };
-            SchedItemShow.Tickets.Add(t);
-            FilePusher.AddTicket(t,SchedItemShow.DTShowTime);
-            SchedItemShow.UpSeats();
+            var t = new TicketItem() { ShowTime = SchedItemShow, SaleType = RBFree.IsChecked ?? false ? 'F' : RBDiscount.IsChecked ?? false ? 'D' : 'P', NumTickets = CMBTicketAvalible.SelectedIndex + 1, BuyerName = TBName.Text, Phone = phone, Created=DateTime.Now };
+            FilePusher.AddTicket(t);
             Close();
-            if (SchedItemShow.DTShowTime>=DateTime.Now && SchedItemShow.DTShowTime < DateTime.Now.AddMinutes(45))
+            FilePusher.TotMessage.Content = "Today's Total: " + FilePusher.TotalShows.ToString();
+            if (SchedItemShow>=DateTime.Now && SchedItemShow < DateTime.Now.AddMinutes(45))
             {
-                FilePusher.Push();
+                FilePusher.Push(null,null);
+                if (FilePusher.SFTPtimer.IsEnabled)
+                {
+                    FilePusher.SFTPtimer.Stop();
+                }
+                FilePusher.SFTPtimer.Start();
             }
         }
     }
