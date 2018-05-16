@@ -52,14 +52,12 @@ namespace Booker
         {
             //Check if FilePusher.shows is the same day as _dt
             SOI = FilePusher.MakeShowOptions(_dt, FilePusher.shows[ShowIndex].Tickets[TicketIndex ?? 0].NumTickets);
-                //FilePusher.shows.FindAll(x => (FilePusher.AllowRetro || x.DTShowTime > DateTime.Now) && x.Seats >= item.NumTickets);
             NoShow = false;
             if (SOI.Count == 0)
             {
                 SOI.Add(new ShowOptionItem() { ShowOption = "No Available Shows" });
                 NoShow = true;
             }
-            //dpMoveDate.DisplayDateStart = DateTime.Today;
             CMBShowsAvalible.ItemsSource = SOI;
             CMBShowsAvalible.SelectedIndex = 0;
 

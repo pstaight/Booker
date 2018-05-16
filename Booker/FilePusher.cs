@@ -3,8 +3,6 @@ using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.IO;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using System.Windows.Threading;
 using Renci.SshNet;
 
@@ -227,7 +225,7 @@ namespace Booker
             shows.FindLast(x => x.DTShowTime <= DateTime.Now).UpColor();
         }
 
-        /*public static void MakeSched()
+        private static void MakeSched()
         {
             string schedfilename = folder + "sched" + shows[0].DTShowTime.ToString("yyyyMMdd") + "-000.csv";
             if (!File.Exists(schedfilename))
@@ -241,17 +239,10 @@ namespace Booker
                 }
                 File.WriteAllLines(schedfilename, lines);
             }
-        }*/
+        }
 
         public static void RemoveTicket(int ShowIndex,int? TicketIndex)
         {
-            //var sp = (sender as Button).Parent as StackPanel;
-            //var ti = new TicketItem() { NumTickets = int.Parse((sp.Children[2] as TextBlock).Text), SaleType = (sp.Children[3] as TextBlock).Text[0], Phone = (sp.Children[4] as TextBlock).Text, BuyerName = (sp.Children[5] as TextBlock).Text };
-            //var item = shows[CurrentShowDisplayed].Tickets.First(x => x.NumTickets == ti.NumTickets && x.SaleType == ti.SaleType && x.Phone.Equals(ti.Phone) && x.BuyerName.Equals(ti.BuyerName));
-            //shows[CurrentShowDisplayed].Tickets.Remove(item);
-            //shows[CurrentShowDisplayed].UpSeats();
-            //FilePusher.RemoveTicket(item, shows[CurrentShowDisplayed].DTShowTime);
-            //read in the ticket file, remove this record, sort it, write it back out, Remove this record from Tickets
             var item = shows[ShowIndex].Tickets[TicketIndex ?? 0];
             var itemTime = item.ShowTime;
             shows[ShowIndex].Tickets.Remove(item);
@@ -292,6 +283,7 @@ namespace Booker
                 s.Tickets.Add(t);
                 s.UpSeats();
             }
+            MakeSched();
             File.AppendAllLines(folder + "ticket" + t.ShowTime.ToString("yyyyMMdd") + "-000.csv", new List<string>
             {
                 t.ShowTime.ToString("yyyy-MM-dd HHmm") + "," + t.NumTickets.ToString() + "," + t.SaleType + ",\"" + t.BuyerName + "\"," + t.Phone + ","+t.Created.ToString("yyyy-MM-dd HHmmss")
@@ -312,18 +304,5 @@ namespace Booker
                 client.Disconnect();
             }
         }
-        /*
-        public void MoveT(TicketItem Old, TicketItem NewItem)
-        {
-            shows[CurrentShowDisplayed].Tickets.Remove(Old);
-            shows[CurrentShowDisplayed].UpSeats();
-            FilePusher.RemoveTicket(Old, shows[CurrentShowDisplayed].DTShowTime);
-            FilePusher.AddTicket(NewItem, NewItem.ShowTime);
-            if (shows[CurrentShowDisplayed].DTShowTime.Date == NewItem.ShowTime.Date)
-            {
-                shows.Find(x => x.DTShowTime == NewItem.ShowTime).Tickets.Add(NewItem);
-            }
-        }
-        */
     }
 }
