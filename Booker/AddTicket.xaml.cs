@@ -38,14 +38,10 @@ namespace Booker
             var clean = new System.Text.RegularExpressions.Regex(@"[^\d]");
             var phone = clean.Replace(TBPhone.Text, "");
             if (phone.Length != 10 && phone.Length != 7) phone = "";
-            var t = new TicketItem() { ShowTime = SchedItemShow, SaleType = RBFree.IsChecked ?? false ? 'F' : RBDiscount.IsChecked ?? false ? 'D' : 'P', NumTickets = CMBTicketAvalible.SelectedIndex + 1, BuyerName = TBName.Text, Phone = phone, Created=DateTime.Now };
+            var t = new TicketItem() { ShowTime = SchedItemShow, SaleType = RBFree.IsChecked ?? false ? 'F' : RBDiscount.IsChecked ?? false ? 'D' : 'P', NumTickets = CMBTicketAvalible.SelectedIndex + 1, BuyerName = TBName.Text.Replace(',','.'), Phone = phone, Created=DateTime.Now };
             FilePusher.AddTicket(t);
             Close();
             FilePusher.TotMessage.Content = "Today's Total: " + FilePusher.TotalShows.ToString();
-            if (SchedItemShow>=DateTime.Now && SchedItemShow < DateTime.Now.AddMinutes(45))
-            {
-                FilePusher.Push(null,null);
-            }
         }
     }
 

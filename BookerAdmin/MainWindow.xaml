@@ -1,0 +1,53 @@
+﻿<Window x:Class="BookerAdmin.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:local="clr-namespace:BookerAdmin"
+        mc:Ignorable="d"
+        Title="Admin" Height="600" Width="500">
+    <StackPanel Margin="20,0">
+        <Button x:Name="BtnSave" HorizontalAlignment="Right" Content="Save" Click="BtnSave_Click"/>
+        <Label Content="SMS Message" />
+        <TextBox x:Name="TBMsg" Text="Hello &lt;BUYERNAME&gt;, Your VR show starts in &lt;MIN2SHOW&gt; minutes. &lt;SHOWTIME&gt;" />
+        <Label Content="SMS SID" />
+        <TextBox x:Name="TBSid" />
+        <Label Content="SMS Token" />
+        <TextBox x:Name="TBToken" />
+        <Label Content="SMS From" />
+        <TextBox x:Name="TBFrom" />
+        <Label Content="SFTP Server" />
+        <TextBox x:Name="TBServer" Text="patricksapps.com" />
+        <Label Content="User" />
+        <TextBox x:Name="TBUser" Text="client1" />
+        <Label Content="Password" />
+        <TextBox x:Name="TBPass" />
+        <TextBlock Text="New Rule" />
+        <StackPanel Orientation="Horizontal">
+            <Button x:Name="BtnAdd" Content="Add Rule" Click="BtnAdd_Click"/>
+            <ComboBox x:Name="CBDay">
+                <ComboBoxItem IsSelected="True">Mon</ComboBoxItem>
+                <ComboBoxItem>Tue</ComboBoxItem>
+                <ComboBoxItem>Wed</ComboBoxItem>
+                <ComboBoxItem>Thr</ComboBoxItem>
+                <ComboBoxItem>Fri</ComboBoxItem>
+                <ComboBoxItem>Sat</ComboBoxItem>
+                <ComboBoxItem>Sun</ComboBoxItem>
+            </ComboBox>
+            <TextBox x:Name="TBStart" Text="Start" />
+            <TextBox x:Name="TBEnd" Text="End" />
+            <TextBox x:Name="TBSeats" Text="Seats" />
+            <TextBox x:Name="TBLength" Text="Length" />
+        </StackPanel>
+        <ItemsControl Name="ICRules" HorizontalContentAlignment="Stretch">
+            <ItemsControl.ItemTemplate>
+                <DataTemplate>
+                    <StackPanel Orientation="Horizontal">
+                        <Button x:Name="BtnDelete" Tag="{Binding ID}" Content="Delete" Click="BtnDelete_Click" />
+                        <Label Content="{Binding Rule}"/>
+                    </StackPanel>
+                </DataTemplate>
+            </ItemsControl.ItemTemplate>
+        </ItemsControl>
+    </StackPanel>
+</Window>

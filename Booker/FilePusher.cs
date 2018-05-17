@@ -278,6 +278,10 @@ namespace Booker
                 outlines.Add(t.ShowTime.ToString("yyyy-MM-dd HHmm") + "," + t.NumTickets.ToString() + "," + t.SaleType + ",\"" + t.BuyerName + "\"," + t.Phone);
             }
             File.WriteAllLines(folder + "ticket" + itemTime.ToString("yyyyMMdd") + "-000.csv", outlines);
+            if (item.ShowTime > DateTime.Now && item.ShowTime <= DateTime.Now.AddHours(2))
+            {
+                Push(null, null);
+            }
         }
 
         public static void AddTicket(TicketItem t)
@@ -294,6 +298,10 @@ namespace Booker
             {
                 t.ShowTime.ToString("yyyy-MM-dd HHmm") + "," + t.NumTickets.ToString() + "," + t.SaleType + ",\"" + t.BuyerName + "\"," + t.Phone + ","+t.Created.ToString("yyyy-MM-dd HHmmss")
             });
+            if(t.ShowTime > DateTime.Now && t.ShowTime <= DateTime.Now.AddMinutes(120))
+            {
+                Push(null, null);
+            }
         }
 
         //Should we always push today's file or should we push the currently open day?
@@ -305,10 +313,14 @@ namespace Booker
                 using (var client = new SftpClient(host, username, password))
                 {
                     client.Connect();
+                    client.ChangeDirectory("booker");
                     using (var uplfileStream = File.OpenRead(folder + uploadfn))
                     {
                         client.UploadFile(uplfileStream, uploadfn, true);
                     }
+                    //var att = client.GetAttributes(uploadfn);
+                    //att.GroupId = 33;
+                    //client.SetAttributes(uploadfn, att);
                     client.Disconnect();
                 }
             }
@@ -326,7 +338,7 @@ namespace Booker
         //  Set interval to 3 minutes
         public static void SendSMS(object sender, EventArgs e)
         {
-            while (LastNotifyed <= DateTime.Now.AddMinutes(30))
+            while (LastNotifyed < DateTime.Now.AddMinutes(27))
             {
                 //If there are duplacates, only one of them will be notifyed.
                 //There shouldn't be duplacates
@@ -337,7 +349,7 @@ namespace Booker
                 }
                 else
                 {
-                    if(s.Key > DateTime.Now.AddMinutes(27))
+                    if(s.Key > DateTime.Now.AddMinutes(25))
                     {
                         if (File.Exists(folder + "ticket" + s.Key.ToString("yyyyMMdd") + "-000.csv"))
                         {
