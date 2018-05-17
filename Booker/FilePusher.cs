@@ -19,26 +19,14 @@ namespace Booker
         private static DispatcherTimer SFTPtimer = new DispatcherTimer(TimeSpan.FromSeconds(3), DispatcherPriority.Background,Push, Dispatcher.CurrentDispatcher);
         private static DispatcherTimer SMSTimer = new DispatcherTimer(TimeSpan.FromSeconds(2), DispatcherPriority.Background, SendSMS, Dispatcher.CurrentDispatcher);
 
-        public static bool HasMoreShows => shows.Any(x => x.DTShowTime >= DateTime.Now);
-        public static DateTime NextShowTime => shows.First(x => x.DTShowTime >= DateTime.Now).DTShowTime;
+        public static bool HasMoreShows => ThinSced.Any(x => x.Key >= DateTime.Now);
+        public static DateTime NextShowTime => ThinSced.First(x => x.Key >= DateTime.Now).Key;
         public static int TotalShows => shows.Sum(x => x.Tickets.Sum(y => y.NumTickets));
         public static System.Windows.Controls.Label TotMessage;
         public static void ReadDay(DateTime value)
         {
 
             shows = new List<SchedItem>();
-            if (value.Date == DateTime.Today)
-            {
-                if (!SMSTimer.IsEnabled) SMSTimer.Start();
-            }
-            else
-            {
-                SMSTimer.Stop();
-            }
-            if (!SFTPtimer.IsEnabled)
-            {
-                SFTPtimer.Start();
-            }
             string fileName = folder + "sched" + value.ToString("yyyyMMdd") + "-000.csv";
             if (File.Exists(fileName))
             {
@@ -311,29 +299,18 @@ namespace Booker
         //Should we always push today's file or should we push the currently open day?
         public static void Push(object sender, EventArgs e)
         {
-            string host = "patricksapps.com";
-            string username = "client1";
-            string password = @"j8nVV.v{z""\3L#:K";
-            int i;
-            var lines = File.ReadAllLines(folder + "admin.txt");
-            foreach (var l in lines)
-            {
-                switch(l.Substring(0, i=l.IndexOf(':')))
-                {
-                    case "SFTP SERVER":host = l.Substring(i + 1); break;
-                    case "SFTP USER":username = l.Substring(i + 1);break;
-                    case "SFTP PASS":password = l.Substring(i + 1);break;
-                }
-            }
             string uploadfn = "ticket" + DateTime.Today.ToString("yyyyMMdd") + "-000.csv";
-            using (var client = new SftpClient(host, username, password))
+            if (File.Exists(folder + uploadfn))
             {
-                client.Connect();
-                using (var uplfileStream = File.OpenRead(@"C:\Users\Public\Booker\" + uploadfn))
+                using (var client = new SftpClient(host, username, password))
                 {
-                    client.UploadFile(uplfileStream, uploadfn, true);
+                    client.Connect();
+                    using (var uplfileStream = File.OpenRead(folder + uploadfn))
+                    {
+                        client.UploadFile(uplfileStream, uploadfn, true);
+                    }
+                    client.Disconnect();
                 }
-                client.Disconnect();
             }
             SFTPtimer.Interval = new TimeSpan(2, 0, 0);
         }
@@ -349,53 +326,161 @@ namespace Booker
         //  Set interval to 3 minutes
         public static void SendSMS(object sender, EventArgs e)
         {
-            int i;
-            string msg = "Hello <BUYERNAME>, Your VR show starts in <MIN2SHOW> minutes. <SHOWTIME>";
-            string sid = "ACf0b1d2bc18bceb6f140589d44babd183";
-            string token = "9890f94781ec78129b6c14c1ba85299b";
-            string from = "+16196484049";
-            var lines = File.ReadAllLines(folder + "admin.txt");
-            foreach (var l in lines)
-            {
-                switch (l.Substring(0, i = l.IndexOf(':')))
-                {
-                    case "SMS TEXT": msg = l.Substring(i + 1); break;
-                    case "SMS SID": sid = l.Substring(i + 1); break;
-                    case "SMS TOKEN": token = l.Substring(i + 1); break;
-                    case "SMS FROM": from = l.Substring(i + 1); break;
-                }
-            }
-            TwilioClient.Init(sid, token);
             while (LastNotifyed <= DateTime.Now.AddMinutes(30))
             {
                 //If there are duplacates, only one of them will be notifyed.
                 //There shouldn't be duplacates
-                var s = shows.FirstOrDefault(x => x.DTShowTime > LastNotifyed);
-                if (s == null)
+                var s = ThinSced.FirstOrDefault(x => x.Key > LastNotifyed);
+                if (s.Key == null)
                 {
                     LastNotifyed = DateTime.Today.AddDays(1);
                 }
                 else
                 {
-                    if(s.DTShowTime > DateTime.Now.AddMinutes(20))
+                    if(s.Key > DateTime.Now.AddMinutes(27))
                     {
-                        foreach(var ticket in s.Tickets)
+                        if (File.Exists(folder + "ticket" + s.Key.ToString("yyyyMMdd") + "-000.csv"))
                         {
-                            if(ticket.Phone != "")
+                            var lines = File.ReadAllLines(folder + "ticket" + s.Key.ToString("yyyyMMdd") + "-000.csv");
+                            foreach(var l in lines)
                             {
-                                string tmsg = msg.Replace("<BUYERNAME>", ticket.BuyerName).Replace("<MIN2SHOW>", (s.DTShowTime - DateTime.Now).TotalMinutes.ToString("F0")).Replace("<SHOWTIME>", s.DTShowTime.ToString("t"));
-                                var message = MessageResource.Create(
-                to: new PhoneNumber("+1" + (ticket.Phone.Length == 7 ? "619" : "") + ticket.Phone),
-                from: new PhoneNumber(from),
-                body: tmsg
-                );
+                                var d = new DateTime(int.Parse(l.Substring(0, 4)), int.Parse(l.Substring(5, 2)), int.Parse(l.Substring(8, 2)), int.Parse(l.Substring(11, 2)), int.Parse(l.Substring(13, 2)), 0);
+                                if (s.Key.Equals(d))
+                                {
+                                    var dat = l.Split(',');
+                                    if (dat[4] != "")
+                                    {
+                                        string b = dat[3];
+                                        if (b.Length > 1 && (b[b.Length - 1] == '"' || b[b.Length - 1] == '\xFFFD') && (b[0] == '"' || b[0] == '\xFFFD')) b = b.Substring(1, b.Length - 2);
+                                        string tmsg = msg.Replace("<BUYERNAME>", b).Replace("<MIN2SHOW>", (s.Key - DateTime.Now).TotalMinutes.ToString("F0")).Replace("<SHOWTIME>", s.Key.ToString("t"));
+                                        var message = MessageResource.Create(
+                                            to: new PhoneNumber("+1" + (dat[4].Length == 7 ? "619" : "") + dat[4]),
+                                            from: new PhoneNumber(from),
+                                            body: tmsg
+                                            );
+                                    }
+                                }
                             }
                         }
                     }
-                    LastNotifyed = s.DTShowTime;
+                    LastNotifyed = s.Key;
                 }
             }
             SMSTimer.Interval = LastNotifyed - DateTime.Now.AddMinutes(30);
+        }
+
+        public static Dictionary<DateTime, int> MakeThinSched(DateTime dt)
+        {
+            string fileName = folder + "sched" + dt.ToString("yyyyMMdd") + "-000.csv";
+            var tcounts = new Dictionary<DateTime, int>();
+            if (File.Exists(fileName))
+            {
+                string[] lines = File.ReadAllLines(fileName);
+                foreach (var l in lines)
+                {
+                    var d = new DateTime(int.Parse(l.Substring(0, 4)), int.Parse(l.Substring(5, 2)), int.Parse(l.Substring(8, 2)), int.Parse(l.Substring(11, 2)), int.Parse(l.Substring(13, 2)), 0);
+                    if (d.Date == dt.Date)
+                    {
+                        tcounts.Add(d, int.Parse(l.Split(',')[1]));
+                    }
+                }
+            }
+            else
+            {
+                if (File.Exists(folder + "default.csv"))
+                {
+                    char[] d = { 'U', 'M', 'T', 'W', 'H', 'F', 'S' };
+                    char mark = d[(int)dt.DayOfWeek];
+                    string[] lines = File.ReadAllLines(folder + "default.csv");
+                    foreach (var l in lines)
+                    {
+                        if (l[0] == mark)
+                        {
+                            var dat = l.Split(',');
+                            if (!int.TryParse(dat[1], out int start)) continue;
+                            if (!int.TryParse(dat[2], out int end)) continue;
+                            if (!int.TryParse(dat[3], out int seats)) continue;
+                            if (!int.TryParse(dat[4], out int length)) continue;
+                            var s = dt.Date.AddHours(start / 100).AddMinutes(start % 100);
+                            var e = dt.Date.AddHours(end / 100).AddMinutes(end % 100);
+                            while (s < e)
+                            {
+                                if (tcounts.ContainsKey(s))
+                                {
+                                    if (tcounts[s] > seats)
+                                    {
+                                        tcounts[s] = seats;
+                                    }
+                                }
+                                else
+                                {
+                                    tcounts.Add(s, seats);
+                                }
+                                s = s.AddMinutes(length);
+                            }
+                        }
+                    }
+                }
+                else
+                {
+                    var s = dt.Date.AddHours(9);
+                    var e = dt.Date.AddHours(17);
+                    while (s < e)
+                    {
+                        tcounts.Add(s, 12);
+                        s = s.AddMinutes(15);
+                    }
+                }
+            }
+            return tcounts;
+        }
+
+        private static string from;
+        private static string msg;
+        private static string host;
+        private static string username;
+        private static string password;
+        public static bool DoPush = false;
+
+        private static Dictionary<DateTime, int> ThinSced;
+
+        public static void ReadSecrets()
+        {
+            string sid="", token="";
+            if (File.Exists(folder + "admin.txt"))
+            {
+                int i;
+                var lines = File.ReadAllLines(folder + "admin.txt");
+                foreach (var l in lines)
+                {
+                    switch (l.Substring(0, i = l.IndexOf(':')))
+                    {
+                        case "SMS TEXT": msg = l.Substring(i + 1); break;
+                        case "SMS SID": sid = l.Substring(i + 1); break;
+                        case "SMS TOKEN": token = l.Substring(i + 1); break;
+                        case "SMS FROM": from = l.Substring(i + 1); break;
+                        case "SFTP SERVER": host = l.Substring(i + 1); break;
+                        case "SFTP USER": username = l.Substring(i + 1); break;
+                        case "SFTP PASS": password = l.Substring(i + 1); break;
+                    }
+                }
+            }
+            if (sid != "" && token != "")
+            {
+                TwilioClient.Init(sid, token);
+                SMSTimer.Start();
+            }
+            if (host != "" && username != "" && password != "")
+            {
+                SFTPtimer.Start();
+                DoPush = true;
+            }
+        }
+
+        public static void init()
+        {
+            ThinSced = MakeThinSched(DateTime.Today);
+            ReadSecrets();
         }
     }
 }

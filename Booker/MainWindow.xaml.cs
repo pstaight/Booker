@@ -35,6 +35,7 @@ namespace Booker
         {
             InitializeComponent();
             Directory.CreateDirectory(FilePusher.folder);
+            FilePusher.init();
             timer.Tick += Timer_Tick;
             FilePusher.TotMessage = LTotalTicks;
             LoadDay(DateTime.Today);
@@ -83,7 +84,10 @@ namespace Booker
         //A: Don't worry about that. It's outside the scope of this project.
         void Timer_Tick(object sender, EventArgs e)
         {
-            FilePusher.UpLastColor();
+            if (FilePusher.shows[0].DTShowTime.Date == DateTime.Today)
+            {
+                FilePusher.UpLastColor();
+            }
             if (FilePusher.HasMoreShows)
             {
                 timer.Interval = FilePusher.NextShowTime - DateTime.Now;
