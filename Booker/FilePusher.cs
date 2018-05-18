@@ -338,7 +338,7 @@ namespace Booker
         //  Set interval to 3 minutes
         public static void SendSMS(object sender, EventArgs e)
         {
-            while (LastNotifyed < DateTime.Now.AddMinutes(30))
+            while (LastNotifyed < DateTime.Now.AddMinutes(15))
             {
                 //If there are duplacates, only one of them will be notifyed.
                 //There shouldn't be duplacates
@@ -350,7 +350,7 @@ namespace Booker
                 }
                 else
                 {
-                    if(s.Key > DateTime.Now.AddMinutes(25))
+                    if(s.Key > DateTime.Now.AddMinutes(10))
                     {
                         if (File.Exists(folder + "ticket" + s.Key.ToString("yyyyMMdd") + "-000.csv"))
                         {
