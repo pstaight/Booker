@@ -5,7 +5,7 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:BookerAdmin"
         mc:Ignorable="d"
-        Title="Admin" Height="600" Width="500">
+        Title="Admin" Height="800" Width="500">
     <StackPanel Margin="20,0">
         <Button x:Name="BtnSave" HorizontalAlignment="Right" Content="Save" Click="BtnSave_Click"/>
         <Button x:Name="BtnReport" HorizontalAlignment="Right" Content="Report" Click="BtnReport_Click"/>
