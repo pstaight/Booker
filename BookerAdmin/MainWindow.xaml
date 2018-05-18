@@ -8,6 +8,7 @@
         Title="Admin" Height="600" Width="500">
     <StackPanel Margin="20,0">
         <Button x:Name="BtnSave" HorizontalAlignment="Right" Content="Save" Click="BtnSave_Click"/>
+        <Button x:Name="BtnReport" HorizontalAlignment="Right" Content="Report" Click="BtnReport_Click"/>
         <Label Content="SMS Message" />
         <TextBox x:Name="TBMsg" Text="Hello &lt;BUYERNAME&gt;, Your VR show starts in &lt;MIN2SHOW&gt; minutes. &lt;SHOWTIME&gt;" />
         <Label Content="SMS SID" />

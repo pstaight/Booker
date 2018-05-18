@@ -22,7 +22,7 @@ namespace BookerAdmin
     /// </summary>
     public partial class MainWindow : Window
     {
-        private const string folder = @"C:\Users\Public\Booker\";
+        public const string folder = @"C:\Users\Public\Booker\";
         public ObservableCollection<RuleItem> R;
         private int LastID;
         public MainWindow()
@@ -116,6 +116,12 @@ namespace BookerAdmin
             }
             File.WriteAllLines(folder + "default.csv", l2);
             Close();
+        }
+
+        private void BtnReport_Click(object sender, RoutedEventArgs e)
+        {
+            var a = new Report();
+            a.Show();
         }
     }
     public class RuleItem

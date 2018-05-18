@@ -15,7 +15,7 @@ namespace Booker
     {
         public const string folder = @"C:\Users\Public\Booker\";
         public static List<SchedItem> shows;
-        private static DateTime LastNotifyed = DateTime.Today;
+        private static DateTime LastNotifyed = DateTime.Now.AddMinutes(30);
         private static DispatcherTimer SFTPtimer = new DispatcherTimer(TimeSpan.FromSeconds(3), DispatcherPriority.Background,Push, Dispatcher.CurrentDispatcher);
         private static DispatcherTimer SMSTimer = new DispatcherTimer(TimeSpan.FromSeconds(2), DispatcherPriority.Background, SendSMS, Dispatcher.CurrentDispatcher);
 
@@ -338,13 +338,14 @@ namespace Booker
         //  Set interval to 3 minutes
         public static void SendSMS(object sender, EventArgs e)
         {
-            while (LastNotifyed < DateTime.Now.AddMinutes(27))
+            while (LastNotifyed < DateTime.Now.AddMinutes(30))
             {
                 //If there are duplacates, only one of them will be notifyed.
                 //There shouldn't be duplacates
                 var s = ThinSced.FirstOrDefault(x => x.Key > LastNotifyed);
-                if (s.Key == null)
+                if (s.Key == null || s.Key==DateTime.MinValue)
                 {
+                    SMSTimer.Stop();
                     LastNotifyed = DateTime.Today.AddDays(1);
                 }
                 else
@@ -378,7 +379,7 @@ namespace Booker
                     LastNotifyed = s.Key;
                 }
             }
-            SMSTimer.Interval = LastNotifyed - DateTime.Now.AddMinutes(30);
+            SMSTimer.Interval = TimeSpan.FromMinutes(2);
         }
 
         public static Dictionary<DateTime, int> MakeThinSched(DateTime dt)
